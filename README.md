@@ -1,6 +1,6 @@
 # i3-tools
-A few scripts I use with the i3 window manager. Which is to say, one script
-right now.
+A few scripts I use with the i3 window manager. Actually, there's only one right
+now, but more might follow.
 
 ## focus-tool
 
@@ -11,7 +11,7 @@ the given direction of the current window. This differs from the default
 behaviour of i3, which selects the most recently focused container in whatever
 structure lies in the given direction.
 
-Example: Suppose your windows are laid out in a 2x2 grid as follows:
+As an example, suppose your windows are laid out in a 2x2 grid as follows:
 
     ┌────────────────┐┌────────────────┐
     │                ││                │
@@ -65,8 +65,6 @@ Some more remarks:
  - The script supports moving between multiple monitors, as long as they are
    in a reasonable layout.
  - `focus-tool [direction]` doesn't wrap. This is intentional.
- - The script depends on
-   [i3ipc-python](https://github.com/acrisci/i3ipc-python) by acrisci.
  - The tool also doesn't change the currently focused tab in a tabbed or stacked
    container. Instead, it uses the above logic considering only currently
    visible tabs. Use the second mode to change tabs.
@@ -77,7 +75,7 @@ innermost tabbed or stacked container which contains the currently focused
 window. It can also cycle through floating windows. 
 
 
-Example bindings:
+Suggested key bindings:
 
     bindsym $mod+h exec --no-startup-id "path/to/focus-tool left"
     bindsym $mod+j exec --no-startup-id "path/to/focus-tool down"
@@ -86,3 +84,7 @@ Example bindings:
 
     bindsym $mod+bracketleft exec --no-startup-id "path/to/focus-tool tab-prev"
     bindsym $mod+bracketright exec --no-startup-id "path/to/focus-tool tab-next"
+
+
+focus-tool depends on [i3ipc-python](https://github.com/acrisci/i3ipc-python) by
+acrisci.
