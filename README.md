@@ -86,5 +86,5 @@ Suggested key bindings:
     bindsym $mod+bracketright exec --no-startup-id "path/to/focus-tool tab-next"
 
 
-focus-tool depends on [i3ipc-python](https://github.com/acrisci/i3ipc-python) by
-acrisci.
+focus-tool requires Python 3 and depends on
+[i3ipc-python](https://github.com/acrisci/i3ipc-python) by acrisci.
