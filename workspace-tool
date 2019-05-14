@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+
+import i3ipc
+import sys
+import os
+
+conn = i3ipc.Connection()
+
+workspaces = conn.get_workspaces()
+
+# File in which to store old workspace.
+previous_path = os.path.join(os.environ['XDG_RUNTIME_DIR'], "i3/previous_ws")
+
+
+def collect_active():
+	""" Find focused workspace and output.
+
+	returns
+		active_op: The active output.
+		active_ws: The active workspace.
+	"""
+	for w in workspaces:
+		if w["focused"]:
+			active_ws = w["name"]
+			active_op = w["output"]
+			break
+
+	return active_op, active_ws
+
+
+def collect_target(target_ws):
+	"""
+	Find output of target_ws and its visible workspace.
+	If target_ws doesn't exist, returns None, None.
+
+	returns
+		other_op: The output of target_ws.
+		other_ws: The visible workspace of other_op.
+	"""
+	other_op = None
+	other_ws = None
+
+	for w in workspaces:
+		if w["name"] == target_ws:
+			other_op = w["output"]
+			break
+
+	if other_op:
+		for w in workspaces:
+			if w["output"] == other_op and w["visible"]:
+				other_ws = w["name"]
+				break
+
+	return other_op, other_ws
+
+
+def collect_other():
+	"""
+	Find nonfocused output and its visible workspace. If there are multiple other
+	outputs, pick one arbitrarily.
+
+	returns
+		other_op: A nonfocused output.
+		other_ws: The visible workspace of other_op.
+	"""
+	other_op = None
+	other_ws = None
+
+	for w in workspaces:
+		if not w["focused"] and w["visible"]:
+			other_op = w["output"]
+			other_ws = w["name"]
+			break
+
+	return other_op, other_ws
+
+
+def fetch_workspace(target_ws):
+	"""
+	Switch to workspace target_ws on the currently focused display.
+	If target_ws is active on another output, swap workspaces.
+	Repeat to undo.
+	"""
+	active_op, active_ws = collect_active()
+	other_op, other_ws = collect_target(target_ws)
+
+	if active_ws == target_ws:
+		# go to previous workspace
+		if os.path.isfile(previous_path):
+			with open(previous_path, "r") as f:
+				previous_ws = f.readline()
+			if previous_ws != target_ws:
+				fetch_workspace(previous_ws)
+				return
+	elif not other_op or active_op == other_op:
+		# simply switch workspace
+		conn.command(f"workspace {target_ws}")
+	elif target_ws != other_ws:
+		# get hidden workspace from other output
+		conn.command(f"workspace {target_ws}; move workspace to output {active_op}")
+	else:
+		# swap workspaces with other output
+		conn.command(
+				f"workspace {active_ws}; move workspace to output {other_op};"
+				f"workspace {target_ws}; move workspace to output {active_op};"
+				)
+
+	with open(previous_path, "w") as f:
+		f.write(active_ws)
+
+
+def rename_workspace(target_ws):
+	"""
+	Rename active workspace to target_ws. Swap names if target_ws exists.
+	Repeat to undo.
+	"""
+	active_op, active_ws = collect_active()
+	other_op, other_ws = collect_target(target_ws)
+
+	if active_ws == target_ws:
+		# go to previous workspace
+		if os.path.isfile(previous_path):
+			with open(previous_path, "r") as f:
+				previous_ws = f.readline()
+			if previous_ws != target_ws:
+				rename_workspace(previous_ws)
+				return
+	elif not other_op:
+		# target_ws doesn't exist
+		conn.command(f"rename workspace {active_ws} to {target_ws}")
+	else:
+		# swap workspace names
+		conn.command(
+			f"rename workspace {active_ws} to temp;"
+			f"rename workspace {target_ws} to {active_ws};"
+			f"rename workspace temp to {target_ws};"
+			)
+
+	with open(previous_path, "w") as f:
+		f.write(active_ws)
+
+
+def swap_output():
+	"""
+	Swap the visible workspace on both outputs.
+	If there are more than two outputs, just swap with one.
+	"""
+	active_op, active_ws = collect_active()
+	other_op, other_ws = collect_other()
+
+	if not other_op:
+		# only one output
+		return
+
+	# swap workspaces with other output
+	conn.command(
+			f"workspace {active_ws}; move workspace to output {other_op};"
+			f"workspace {other_ws}; move workspace to output {active_op};"
+			)
+
+
+def usage():
+	print("Usage: workspace_tool [fetch|rename] WORKSPACE")
+	print("       workspace_tool [fix|swap]")
+	exit(1)
+
+
+def main(command, target_ws=None):
+	if command == "fetch" and target_ws is not None:
+		fetch_workspace(target_ws)
+	elif command == "rename" and target_ws is not None:
+		rename_workspace(target_ws)
+	elif command == "swap" and target_ws is None:
+		swap_output()
+	else:
+		usage()
+
+
+if __name__ == "__main__":
+	if len(sys.argv) not in [2, 3]:
+		usage()
+	main(*sys.argv[1:])

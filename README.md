@@ -16,19 +16,15 @@ whatever structure lies in the given direction.
 
 As an example, suppose your windows are laid out in a 2x2 grid as follows:
 
-    ┌────────────────┐┌────────────────┐
-    │                ││                │
-    │                ││                │
-    │       A        ││       C        │
-    │                ││                │
-    │                ││                │
-    ├────────────────┤├────────────────┤
-    │                ││                │
-    │                ││                │
-    │       B        ││       D        │
-    │                ││                │
-    │                ││                │
-    └────────────────┘└────────────────┘
+    ┌────────────┐┌────────────┐
+    │            ││            │
+    │     A      ││     C      │
+    │            ││            │
+    ├────────────┤├────────────┤
+    │            ││            │
+    │     B      ││     D      │
+    │            ││            │
+    └────────────┘└────────────┘
 
 That is, the workspace is split horizontally, and each of its two children is
 split vertically. Suppose you first focus D, and then directly switch to A.
@@ -43,26 +39,7 @@ focused one, whereas window-tool does the intuitive thing.
 
 If there are multiple windows that can be considered to lie in the specified
 direction, window-tool will *usually* choose the most recently focused one
-among them. For example, given the following layout:
-
-    ┌────────────────┐┌────────────────┐
-    │                ││                │
-    │                ││       C        │
-    │       A        ││                │
-    │                │├────────────────┤
-    │                ││                │
-    │                ││       D        │
-    ├────────────────┤│                │
-    │                │├────────────────┤
-    │       B        ││                │
-    │                ││       E        │
-    │                ││                │
-    └────────────────┘└────────────────┘
-
-with A currently focused, the command `window-tool focus right` will move to the
-most recently focused window among C and D, but never E.
-(Note: In some more contrived layouts, it might not find the most recently
-focused window. I do not consider this important enough to warrant a fix.)
+among them. This can fail in some more contrived layouts.
 
 Some more remarks:
  - The script supports moving between multiple monitors, as long as they are
@@ -70,7 +47,7 @@ Some more remarks:
  - `window-tool focus [direction]` doesn't wrap. This is intentional.
  - The tool also doesn't change the currently focused tab in a tabbed or stacked
    container. Instead, it uses the above logic considering only currently
-   visible tabs. Use the second mode to change tabs.
+   visible tabs. Use `tab-focus` to change tabs.
 
 
 `window-tool swap [left|right|up|down]` swaps the current container with the one
@@ -82,11 +59,11 @@ innermost tabbed or stacked container which contains the currently focused
 window. It can also cycle through floating windows. 
 
 
-`window-tool tab-move [prev|next]` moves the innermost tab or stack, even if it
-is further subdivided.
+`window-tool tab-move [prev|next]` moves the innermost tab, and works even if
+the tabs are further subdivided. Does not wrap.
 
 
-Example config:
+Example configuration:
 
     bindsym $mod+h exec --no-startup-id "path/to/window-tool focus left"
     bindsym $mod+j exec --no-startup-id "path/to/window-tool focus down"
@@ -106,7 +83,7 @@ Example config:
 resize-tool resizes the current container. It will adjust the outer gaps instead
 if there is only one container. This currently requires a 
 [development version](https://github.com/Airblader/i3/tree/gaps-next)
-of i3-gaps. You can find it e.g. on the
+of i3-gaps, which can be found on the
 [AUR](https://aur.archlinux.org/packages/i3-gaps-next-git/).
 
 `resize-tool [horizontal|vertical|left|right|top|bottom] AMOUNT` resizes the
@@ -123,7 +100,7 @@ Use the `smart_gaps inverse_outer` setting to enable these outer gaps only when
 there is just one window.
 
 
-Example config:
+Example configuration:
 
     gaps inner      20
     gaps outer      0
@@ -139,24 +116,24 @@ Example config:
 
 ## workspace-tool
 
-workspace-tool is used to change workspaces in a multi-monitor setup. Unlike in
-the regular way i3 works, this tool treats workspaces as independend from their
+workspace-tool is used to change workspaces in a multi-monitor setup. Unlike
+the regular way i3 works, this tool treats workspaces as independent from their
 output.
 
-`workspace-tool fetch WORKSPACE` focuses the named workspace on the currently
-active output. If that workspace was already visible on another output, it swaps
-with that output. You can undo the command by repeating it.
+`workspace-tool fetch WORKSPACE` shows the given workspace on the currently
+active output. If that workspace was already visible on another output, swap
+them. You can undo this command by repeating it.
 
 `workspace-tool rename WORKSPACE` renames the current workspace to the given
-name. If that workspace already exists, it swaps names. You can undo the command
-by repeating it.
+name. If that workspace already exists, it swaps names. You can undo this
+command by repeating it.
 
 `workspace-tool swap` swaps the workspaces on your outputs, if you have exactly
-two monitors. (Otherwise, it will swap with an arbitrary other output, which is
-not very useful.)
+two monitors. (If you have more, it will swap with an arbitrary other output,
+which is not very useful.)
 
 
-Example config:
+Example configuration:
 
     bindsym $mod+m       focus output right
     bindsym $mod+Shift+m move container to output right
