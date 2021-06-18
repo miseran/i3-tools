@@ -8,25 +8,13 @@ conn = i3ipc.Connection()
 tree = conn.get_tree()
 
 
-def resize(direction, amount):
+def single_leaf():
 	"""
-	Resize the current container along to the given direction.
-	If there is only a single container, resize by adjusting gaps.
-	If the direction is "natural", resize vertically in a splitv container, else
-	horizontally. If it is "orhtogonal", do the opposite.
+	Returns (single, vertical).
+	single is true if the current workspace contains only a single container.
+	For this, a tabbed container counts as only one.
+	vertical is true if the workspace is split vertically and single is false.
 	"""
-	if direction not in [
-			"natural", "orthogonal", "horizontal", "vertical",
-			"top", "bottom", "left", "right",
-			]:
-		usage()
-
-	try:
-		amount = int(amount)
-	except ValueError:
-		print("Bad resize amount given.")
-		exit(1)
-
 	node = tree.find_focused()
 
 	single = True
@@ -49,6 +37,62 @@ def resize(direction, amount):
 			vertical = True
 			break
 		node = parent
+
+	return single, vertical
+
+
+def workspace_stats():
+	"""
+	Returns (rect, gaps).
+	rect is the rectangle of the current workspace.
+	gaps are how much gap sizes of the current workspace differ from the default.
+	"""
+
+	node = tree.find_focused()
+
+	while True:
+		parent = node.parent
+		if node.type == "workspace" or not parent:
+			return node.rect, node.gaps
+			break
+		node = parent
+
+
+def get_xresources():
+	from Xlib import display, rdb, Xatom
+
+	# Get Xresources
+	dbstr = display.Display().screen(0).root.get_full_property(
+			Xatom.RESOURCE_MANAGER, Xatom.STRING
+			)
+	db = rdb.ResourceDB(string=dbstr.value.decode())
+	dpi = int(db.get("i3.dpi", "i3.dpi", "0"))
+	hgap = int(db.get("i3.hgap", "i3.hgap", "0"))
+	igap = int(db.get("i3.igap", "i3.igap", "0"))
+
+	return dpi, hgap, igap
+
+
+def resize(direction, amount):
+	"""
+	Resize the current container along to the given direction.
+	If there is only a single container, resize by adjusting gaps.
+	If the direction is "natural", resize vertically in a splitv container, else
+	horizontally. If it is "orhtogonal", do the opposite.
+	"""
+	if direction not in [
+			"natural", "orthogonal", "horizontal", "vertical",
+			"top", "bottom", "left", "right",
+			]:
+		usage()
+
+	try:
+		amount = int(amount)
+	except ValueError:
+		print("Bad resize amount given.")
+		exit(1)
+
+	single, vertical = single_leaf()
 
 	if single:
 		if direction == "natural":
@@ -94,7 +138,14 @@ def usage():
 	exit(1)
 
 
-if __name__ == "__main__":
-	if len(sys.argv) != 3:
+def main(command, direction=None, amount=None):
+	if command == "resize":
+		resize(direction, amount)
+	else:
 		usage()
-	resize(*sys.argv[1:])
+
+
+if __name__ == "__main__":
+	if len(sys.argv) != 4:
+		usage()
+	main(*sys.argv[1:])

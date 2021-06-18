@@ -132,6 +132,40 @@ def focus_direction(direction):
 		conn.command(f'[con_id="{node.id}"] focus')
 
 
+def move_direction(direction, amount):
+	"""
+	Move the current container in the given direction. I the direct parent is a
+	tabbed or stacked container, escape from it.
+	"""
+
+	focused = tree.find_focused()
+
+	try:
+		amount = int(amount)
+	except ValueError:
+		print("Bad resize amount given.")
+		exit(1)
+
+	if direction in ["left", "right"]:
+		tabx = "tabbed"
+		taby = "stacked"
+	elif direction in ["up", "down"]:
+		tabx = "stacked"
+		taby = "tabbed"
+	else:
+		usage()
+
+	parent = focused.parent
+	if parent and parent.layout == tabx:
+		sibling = next((n for n in parent.nodes if n != focused), None)
+		if sibling:
+			conn.command(f'layout {taby}; move {direction} {amount} px;'
+			             f'[con_id="{sibling.id}"] layout {tabx}')
+			return
+
+	conn.command(f"move {direction} {amount} px")
+
+
 def swap_direction(direction):
 	"""
 	Swap with the leaf that is *visually* in direction "direction". If there are
@@ -215,24 +249,27 @@ def move_tab(direction):
 
 def usage():
 	print("Usage: window_tool [focus|swap] [up|down|left|right]")
+	print("       window_tool move [up|down|left|right] AMOUNT")
 	print("       window_tool [tab-focus|tab-move] [prev|next]")
 	exit(1)
 
 
-def main(command, direction):
-	if command == "focus":
+def main(command, direction, arg=None):
+	if command == "focus" and arg is None:
 		focus_direction(direction)
-	elif command == "swap":
+	elif command == "swap" and arg is None:
 		swap_direction(direction)
-	elif command == "tab-focus":
+	elif command == "move" and arg is not None:
+		move_direction(direction, arg)
+	elif command == "tab-focus" and arg is None:
 		focus_tab(direction)
-	elif command == "tab-move":
+	elif command == "tab-move" and arg is None:
 		move_tab(direction)
 	else:
 		usage()
 
 
 if __name__ == "__main__":
-	if len(sys.argv) != 3:
+	if len(sys.argv) not in [3, 4]:
 		usage()
 	main(*sys.argv[1:])

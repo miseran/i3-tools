@@ -20,9 +20,9 @@ def collect_active():
 		active_ws: The active workspace.
 	"""
 	for w in workspaces:
-		if w["focused"]:
-			active_ws = w["name"]
-			active_op = w["output"]
+		if w.focused:
+			active_ws = w.name
+			active_op = w.output
 			break
 
 	return active_op, active_ws
@@ -41,14 +41,14 @@ def collect_target(target_ws):
 	other_ws = None
 
 	for w in workspaces:
-		if w["name"] == target_ws:
-			other_op = w["output"]
+		if w.name == target_ws:
+			other_op = w.output
 			break
 
 	if other_op:
 		for w in workspaces:
-			if w["output"] == other_op and w["visible"]:
-				other_ws = w["name"]
+			if w.output == other_op and w.visible:
+				other_ws = w.name
 				break
 
 	return other_op, other_ws
@@ -67,9 +67,9 @@ def collect_other():
 	other_ws = None
 
 	for w in workspaces:
-		if not w["focused"] and w["visible"]:
-			other_op = w["output"]
-			other_ws = w["name"]
+		if not w.focused and w.visible:
+			other_op = w.output
+			other_ws = w.name
 			break
 
 	return other_op, other_ws
@@ -109,6 +109,21 @@ def fetch_workspace(target_ws):
 		f.write(active_ws)
 
 
+def previous_workspace():
+	"""
+	Switch to the previous workspace.
+	Repeat to undo.
+	"""
+	active_op, active_ws = collect_active()
+
+	# go to previous workspace
+	if os.path.isfile(previous_path):
+		with open(previous_path, "r") as f:
+			previous_ws = f.readline()
+		if previous_ws != active_ws:
+			fetch_workspace(previous_ws)
+
+
 def rename_workspace(target_ws):
 	"""
 	Rename active workspace to target_ws. Swap names if target_ws exists.
@@ -127,13 +142,13 @@ def rename_workspace(target_ws):
 				return
 	elif not other_op:
 		# target_ws doesn't exist
-		conn.command(f"rename workspace {active_ws} to {target_ws}")
+		conn.command(f'rename workspace "{active_ws}" to "{target_ws}"')
 	else:
 		# swap workspace names
 		conn.command(
-			f"rename workspace {active_ws} to temp;"
-			f"rename workspace {target_ws} to {active_ws};"
-			f"rename workspace temp to {target_ws};"
+			f'rename workspace "{active_ws}" to temp;'
+			f'rename workspace "{target_ws}" to "{active_ws}";'
+			f'rename workspace temp to "{target_ws}";'
 			)
 
 	with open(previous_path, "w") as f:
@@ -170,6 +185,8 @@ def main(command, target_ws=None):
 		fetch_workspace(target_ws)
 	elif command == "rename" and target_ws is not None:
 		rename_workspace(target_ws)
+	elif command == "previous" and target_ws is None:
+		previous_workspace()
 	elif command == "swap" and target_ws is None:
 		swap_output()
 	else:
